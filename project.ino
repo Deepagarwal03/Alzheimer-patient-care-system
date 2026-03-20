@@ -28,9 +28,6 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 #define PIR_PIN 34
 #define BUZZER_PIN 2 
 
-// --- AI Model Instances ---
-// Note: If you get an error here, check if the classes in your .h files 
-// have the exact same name. You might need to rename one in the .h file.
 Eloquent::ML::Port::MotionClassifier motionClf; 
 Eloquent::ML::Port::DHTClassifier dhtClf; 
 
@@ -55,7 +52,7 @@ int mode = 0;
 unsigned long lastSwitchTime = 0;
 const unsigned long displayInterval = 3000; 
 
-const byte RATE_SIZE = 4; // Increase this for more smoothing
+const byte RATE_SIZE = 4; 
 byte rates[RATE_SIZE]; 
 byte rateSpot = 0;
 long lastBeat = 0; 
