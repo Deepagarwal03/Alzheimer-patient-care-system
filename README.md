@@ -1,1 +1,0 @@
-# Alzheimer-patient-care-system
