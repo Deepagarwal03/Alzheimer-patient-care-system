@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alzheimer Patient Care Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <main class="container">
+    <header class="topbar">
+      <div class="title-block">
+        <p class="kicker">Care Monitor</p>
+        <h1>Alzheimer Patient Care System</h1>
+        <p class="subtitle">Real-time patient safety and environment dashboard</p>
+      </div>
+      <div class="topbar-right">
+        <div class="live-dot"></div>
+        <div class="status-chip" id="lastUpdated">Live data</div>
+      </div>
+    </header>
+
+    <section class="tabs">
+      <button class="tab-btn active" data-tab="vitalsTab">Live Vitals</button>
+      <button class="tab-btn" data-tab="circadianTab">Circadian Rhythm & Sleep</button>
+      <button class="tab-btn" data-tab="mobilityTab">Mobility Decay Index</button>
+      <button class="tab-btn" data-tab="envStressTab">Environmental Stress Correlation</button>
+      <button class="tab-btn" data-tab="agitationTab">Agitation Detection</button>
+    </section>
+
+    <section class="tab-panel active" id="vitalsTab">
+      <section class="grid">
+      <article class="card heart-card">
+        <p class="label">Heart Rate</p>
+        <p class="value"><span id="heartRate">76</span> <span class="unit">BPM</span></p>
+        <div class="viz wave-viz" id="heartViz"><span></span></div>
+      </article>
+
+      <article class="card motion-card">
+        <p class="label">Patient Motion</p>
+        <p class="value" id="patientMotion">Resting</p>
+        <div class="viz track-viz" id="patientMotionViz"><span></span></div>
+      </article>
+
+      <article class="card env-status-card">
+        <p class="label">Environment Status</p>
+        <p class="value" id="envStatus">Ideal State</p>
+        <div class="viz meter-viz" id="envStatusViz"><span></span></div>
+      </article>
+
+      <article class="card alert-card" id="fallCard">
+        <p class="label">Fall Alert</p>
+        <p class="value" id="fallAlert">No Fall Detected</p>
+        <div class="viz pulse-viz" id="fallViz"><span></span></div>
+      </article>
+
+      <article class="card body-temp-card">
+        <p class="label">Body Temperature</p>
+        <p class="value"><span id="bodyTemp">36.7</span> <span class="unit">deg C</span></p>
+        <div class="viz meter-viz" id="bodyTempViz"><span></span></div>
+      </article>
+
+      <article class="card env-temp-card">
+        <p class="label">Surrounding Temperature</p>
+        <p class="value"><span id="envTemp">24.8</span> <span class="unit">deg C</span></p>
+        <div class="viz meter-viz" id="envTempViz"><span></span></div>
+      </article>
+
+      <article class="card humidity-card">
+        <p class="label">Humidity</p>
+        <p class="value"><span id="humidity">54</span> <span class="unit">%</span></p>
+        <div class="viz meter-viz" id="humidityViz"><span></span></div>
+      </article>
+
+      <article class="card pir-card">
+        <p class="label">PIR Motion</p>
+        <p class="value" id="pirMotion">No Motion</p>
+        <div class="viz track-viz" id="pirViz"><span></span></div>
+      </article>
+
+      <article class="card rfid-card">
+        <p class="label">RFID IDs</p>
+        <div class="rfid-wrap">
+          <p class="rfid">Primary: <span id="rfid1">A7-91-2C-FF</span></p>
+          <p class="rfid">Secondary: <span id="rfid2">B4-20-9D-61</span></p>
+        </div>
+        <div class="viz scan-viz" id="rfidViz"><span></span></div>
+      </article>
+
+      <article class="card object-card">
+        <p class="label">Nearest Object</p>
+        <p class="value" id="nearestObject">Water Bottle (0.7 m)</p>
+        <div class="viz meter-viz" id="objectViz"><span></span></div>
+      </article>
+
+      <article class="card near-motion-card">
+        <p class="label">Motion Near Patient</p>
+        <p class="value" id="nearMotion">Moving</p>
+        <div class="viz track-viz" id="nearMotionViz"><span></span></div>
+      </article>
+
+      <article class="card ir-card">
+        <p class="label">Heart Sensor IR</p>
+        <p class="value"><span id="heartIr">0</span></p>
+        <div class="viz wave-viz" id="irViz"><span></span></div>
+      </article>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="circadianTab">
+      <article class="card sleep-card">
+        <p class="label">Circadian Rhythm & Sleep Pattern Tracking</p>
+        <div class="chart-wrap">
+          <canvas id="sleepChart" width="1100" height="360"></canvas>
+        </div>
+        <div class="sleep-hours">
+          <p class="sleep-title">Total Hours Slept</p>
+          <p class="sleep-value" id="totalSleepHours">0.00 hrs</p>
+          <p class="sleep-formula" id="sleepFormula">Resting hours - Active hours</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="mobilityTab">
+      <article class="card mobility-card">
+        <p class="label">Mobility Decay Index</p>
+        <div class="mobility-grid">
+          <div class="mobility-stat">
+            <p class="mobility-stat-label">Today's Walking %</p>
+            <p class="mobility-stat-value" id="walkingPct">0.0%</p>
+          </div>
+          <div class="mobility-stat">
+            <p class="mobility-stat-label">Today's Stationary %</p>
+            <p class="mobility-stat-value" id="stationaryPct">0.0%</p>
+          </div>
+          <div class="mobility-stat">
+            <p class="mobility-stat-label">Walking / Stationary Ratio</p>
+            <p class="mobility-stat-value" id="walkStationaryRatio">0.00</p>
+          </div>
+        </div>
+
+        <div class="week-strip" id="mobilityWeek"></div>
+
+        <div class="mobility-warning" id="mobilityWarning">
+          Mobility stable. No weekly decay warning.
+        </div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="envStressTab">
+      <article class="card env-stress-card">
+        <p class="label">Environmental Stress Correlation</p>
+        <div class="env-grid">
+          <div class="env-stat">
+            <p class="env-stat-label">Cold State Risk</p>
+            <p class="env-stat-value" id="coldRisk">0.0%</p>
+            <p class="env-stat-sub" id="coldEvents">0 / 0 events</p>
+          </div>
+          <div class="env-stat">
+            <p class="env-stat-label">Ideal State Risk</p>
+            <p class="env-stat-value" id="idealRisk">0.0%</p>
+            <p class="env-stat-sub" id="idealEvents">0 / 0 events</p>
+          </div>
+          <div class="env-stat">
+            <p class="env-stat-label">Hot State Risk</p>
+            <p class="env-stat-value" id="hotRisk">0.0%</p>
+            <p class="env-stat-sub" id="hotEvents">0 / 0 events</p>
+          </div>
+        </div>
+        <div class="env-summary" id="envSummary">
+          Collecting data to correlate falls or high heart rate with room temperature states.
+        </div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="agitationTab">
+      <article class="card agitation-card">
+        <p class="label">Agitation Detection (Heart Rate Variability)</p>
+        <div class="agitation-grid">
+          <div class="agitation-stat">
+            <p class="agitation-stat-label">Current Status</p>
+            <p class="agitation-stat-value" id="agitationStatus">Stable</p>
+          </div>
+          <div class="agitation-stat">
+            <p class="agitation-stat-label">Baseline BPM (Stationary)</p>
+            <p class="agitation-stat-value" id="baselineBpm">--</p>
+          </div>
+          <div class="agitation-stat">
+            <p class="agitation-stat-label">Current Delta</p>
+            <p class="agitation-stat-value" id="agitationDelta">0 BPM</p>
+          </div>
+          <div class="agitation-stat">
+            <p class="agitation-stat-label">Sustained Increase</p>
+            <p class="agitation-stat-value" id="agitationSustain">0s</p>
+          </div>
+          <div class="agitation-stat">
+            <p class="agitation-stat-label">Events Today</p>
+            <p class="agitation-stat-value" id="agitationEvents">0</p>
+          </div>
+          <div class="agitation-stat">
+            <p class="agitation-stat-label">Last Event</p>
+            <p class="agitation-stat-value" id="agitationLast">--</p>
+          </div>
+        </div>
+        <div class="agitation-summary" id="agitationSummary">
+          Tracking sustained heart rate increases while stationary. No agitation detected.
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
