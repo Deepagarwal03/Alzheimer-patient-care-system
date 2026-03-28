@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F2F7F6">
+
+    <TextView
+        android:id="@+id/headerText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp"
+        android:text="Patient Monitor App"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textColor="#163137"
+        android:background="#DFF1EC" />
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp"
+        android:text="Connecting to ESP32 dashboard..."
+        android:textSize="14sp"
+        android:textColor="#47636A"
+        android:background="#FFFFFF" />
+
+    <WebView
+        android:id="@+id/dashboardWebView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>
