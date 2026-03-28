@@ -31,6 +31,9 @@
       <button class="tab-btn" data-tab="mobilityTab">Mobility Decay Index</button>
       <button class="tab-btn" data-tab="envStressTab">Environmental Stress Correlation</button>
       <button class="tab-btn" data-tab="agitationTab">Agitation Detection</button>
+      <button class="tab-btn" data-tab="hrInsightTab">Heart Insight</button>
+      <button class="tab-btn" data-tab="aiStateTab">AI Patient State</button>
+      <button class="tab-btn" data-tab="comfortTab">Comfort & Alerts</button>
     </section>
 
     <section class="tab-panel active" id="vitalsTab">
@@ -93,8 +96,8 @@
       </article>
 
       <article class="card object-card">
-        <p class="label">Nearest Object</p>
-        <p class="value" id="nearestObject">Water Bottle (0.7 m)</p>
+        <p class="label">Distance From Sensor</p>
+        <p class="value" id="nearestObject">70 cm</p>
         <div class="viz meter-viz" id="objectViz"><span></span></div>
       </article>
 
@@ -121,7 +124,21 @@
         <div class="sleep-hours">
           <p class="sleep-title">Total Hours Slept</p>
           <p class="sleep-value" id="totalSleepHours">0.00 hrs</p>
-          <p class="sleep-formula" id="sleepFormula">Resting hours - Active hours</p>
+          <p class="sleep-formula" id="sleepFormula">0.00h resting | 0.00h active</p>
+        </div>
+        <div class="sleep-ai-panel">
+          <p class="sleep-ai-title">AI Sleep Suggestions</p>
+          <div class="sleep-ai-grid">
+            <div class="sleep-ai-stat">
+              <p class="sleep-ai-label">Resting Hours</p>
+              <p class="sleep-ai-value" id="sleepRestHours">0.00 hrs</p>
+            </div>
+            <div class="sleep-ai-stat">
+              <p class="sleep-ai-label">Active Hours</p>
+              <p class="sleep-ai-value" id="sleepActiveHours">0.00 hrs</p>
+            </div>
+          </div>
+          <div class="sleep-ai-summary" id="sleepAiSummary">AI sleep guidance will appear here as the dashboard collects more rest and activity data.</div>
         </div>
       </article>
     </section>
@@ -180,22 +197,22 @@
 
     <section class="tab-panel" id="agitationTab">
       <article class="card agitation-card">
-        <p class="label">Agitation Detection (Heart Rate Variability)</p>
+        <p class="label">Agitation Detection (Heart Trend + IR)</p>
         <div class="agitation-grid">
           <div class="agitation-stat">
             <p class="agitation-stat-label">Current Status</p>
             <p class="agitation-stat-value" id="agitationStatus">Stable</p>
           </div>
           <div class="agitation-stat">
-            <p class="agitation-stat-label">Baseline BPM (Stationary)</p>
-            <p class="agitation-stat-value" id="baselineBpm">--</p>
+            <p class="agitation-stat-label">Baseline IR (Stationary)</p>
+            <p class="agitation-stat-value" id="baselineIr">--</p>
           </div>
           <div class="agitation-stat">
-            <p class="agitation-stat-label">Current Delta</p>
-            <p class="agitation-stat-value" id="agitationDelta">0 BPM</p>
+            <p class="agitation-stat-label">Current IR Delta</p>
+            <p class="agitation-stat-value" id="agitationIrDelta">0</p>
           </div>
           <div class="agitation-stat">
-            <p class="agitation-stat-label">Sustained Increase</p>
+            <p class="agitation-stat-label">Sustained Change</p>
             <p class="agitation-stat-value" id="agitationSustain">0s</p>
           </div>
           <div class="agitation-stat">
@@ -208,9 +225,90 @@
           </div>
         </div>
         <div class="agitation-summary" id="agitationSummary">
-          Tracking sustained heart rate increases while stationary. No agitation detected.
+          Tracking sustained heart and IR changes while stationary. No agitation detected.
         </div>
       </article>
+    </section>
+
+    <section class="tab-panel" id="hrInsightTab">
+      <section class="grid">
+        <article class="card hr-insight-card card-span-7">
+          <p class="label">AI Heart Rate & IR Insight</p>
+          <div class="ai-grid">
+            <div class="ai-stat"><p class="ai-stat-label">Trend State</p><p class="ai-stat-value" id="hrInsightState">Monitoring</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Signal Quality</p><p class="ai-stat-value" id="hrSignalQuality">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Recent Avg BPM</p><p class="ai-stat-value" id="hrAvgBpm">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Recent Avg IR</p><p class="ai-stat-value" id="hrAvgIr">--</p></div>
+            <div class="ai-stat ai-stat-full"><p class="ai-stat-label">AI Tip</p><p class="ai-stat-value small" id="hrInsightTip">Collecting enough heart and IR samples for insight.</p></div>
+          </div>
+          <div class="ai-summary" id="hrInsightSummary">This tab watches recent BPM and HR sensor IR trends for spike, drop, recovery, and signal-quality guidance.</div>
+        </article>
+        <article class="card hr-watch-card card-span-5">
+          <p class="label">Spike / Drop Watch</p>
+          <div class="ai-grid compact">
+            <div class="ai-stat"><p class="ai-stat-label">Baseline BPM</p><p class="ai-stat-value" id="hrBaseline">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Current BPM Change</p><p class="ai-stat-value" id="hrChange">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">IR Change</p><p class="ai-stat-value" id="hrIrChange">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Alert</p><p class="status-pill" id="hrInsightAlert">Stable</p></div>
+          </div>
+        </article>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="aiStateTab">
+      <section class="grid">
+        <article class="card ai-state-card card-span-7">
+          <p class="label">CNN Temporal Patient-State Prediction</p>
+          <div class="ai-grid">
+            <div class="ai-stat"><p class="ai-stat-label">Predicted State</p><p class="ai-stat-value" id="cnnPatientState">Waiting for model</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">CNN Confidence</p><p class="ai-stat-value" id="cnnConfidence">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Sequence Window</p><p class="ai-stat-value" id="cnnWindowSize">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Model Status</p><p class="status-pill" id="cnnModelStatus">Offline</p></div>
+          </div>
+          <div class="ai-summary" id="cnnSummary">Start the local analytics service to train the CNN on your saved sensor readings and show patient-state predictions here.</div>
+        </article>
+        <article class="card analytics-pipeline-card card-span-5">
+          <p class="label">Analytics Pipeline Status</p>
+          <div class="ai-grid compact">
+            <div class="ai-stat"><p class="ai-stat-label">Service</p><p class="status-pill" id="analyticsServiceStatus">Disconnected</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Raw CSV Rows</p><p class="ai-stat-value" id="analyticsRawRows">0</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Processed Rows</p><p class="ai-stat-value" id="analyticsProcessedRows">0</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Last Training</p><p class="ai-stat-value" id="analyticsLastTrain">--</p></div>
+          </div>
+          <div class="analytics-status-note" id="analyticsStatusNote">Waiting for the companion logger and model service on your computer.</div>
+        </article>
+        <article class="card prediction-history-card card-span-12">
+          <p class="label">Recent AI Timeline</p>
+          <div class="history-table">
+            <div class="history-row history-head"><span>Time</span><span>State</span><span>Alert</span><span>Feedback</span></div>
+            <div id="predictionHistory"><div class="history-row empty"><span>No processed history yet.</span><span>--</span><span>--</span><span>--</span></div></div>
+          </div>
+        </article>
+      </section>
+    </section>
+
+    <section class="tab-panel" id="comfortTab">
+      <section class="grid">
+        <article class="card comfort-card card-span-7">
+          <p class="label">Random Forest Comfort & Care Feedback</p>
+          <div class="ai-grid">
+            <div class="ai-stat"><p class="ai-stat-label">Comfort Feedback</p><p class="ai-stat-value" id="rfFeedback">Waiting for model</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">RF Confidence</p><p class="ai-stat-value" id="rfConfidence">--</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Alert Level</p><p class="status-pill" id="alertLevel">Stable</p></div>
+            <div class="ai-stat"><p class="ai-stat-label">Recommended Action</p><p class="ai-stat-value small" id="recommendedAction">Waiting for processed feedback.</p></div>
+            <div class="ai-stat ai-stat-full"><p class="ai-stat-label">Dominant Risk Factors</p><p class="ai-stat-value small" id="riskFactors">No processed risks yet.</p></div>
+          </div>
+          <div class="comfort-summary" id="rfSummary">This tab will show the Random Forest comfort feedback after the local analytics service receives live readings from the ESP32.</div>
+        </article>
+        <article class="card analytics-log-card card-span-5">
+          <p class="label">Saved Output Files</p>
+          <div class="ai-grid compact">
+            <div class="ai-stat ai-stat-full"><p class="ai-stat-label">Raw Sensor CSV</p><p class="ai-stat-value small" id="rawLogPath">analytics/data/raw_sensor_log.csv</p></div>
+            <div class="ai-stat ai-stat-full"><p class="ai-stat-label">Processed CSV</p><p class="ai-stat-value small" id="processedLogPath">analytics/data/processed_predictions.csv</p></div>
+            <div class="ai-stat ai-stat-full"><p class="ai-stat-label">Last Inference</p><p class="ai-stat-value small" id="lastInference">--</p></div>
+          </div>
+        </article>
+      </section>
     </section>
   </main>
 

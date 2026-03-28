@@ -1,0 +1,176 @@
+PROJECT FLOWCHART
+
+- System Start
+  - Power on ESP32
+  - Initialize Wi-Fi access point
+  - Initialize sensors
+    - MAX30105 heart + IR sensor
+    - DHT11 temperature + humidity sensor
+    - PIR motion sensor
+    - Ultrasonic distance sensor
+    - RFID reader
+    - Motion sensing / MPU input for fall and walking detection
+  - Load embedded webpage files from ESP32
+    - HTML
+    - CSS
+    - JavaScript
+
+- ESP32 Main Loop
+  - Read motion-related sensor values
+  - Run motion model
+    - Detect stationary
+    - Detect walking
+    - Detect fall
+  - Read heart sensor IR
+  - Calculate heart rate BPM
+    - Keep last valid BPM if current reading drops to zero
+  - Read environment data
+    - Temperature
+    - Humidity
+  - Read ultrasonic distance in cm
+  - Read PIR status
+  - Read RFID tag if present
+  - Update LCD display
+  - Update buzzer if fall is detected
+
+- ESP32 Web Data Output
+  - Create `/data` JSON response
+  - Send live values to browser
+    - Heart rate
+    - Heart IR
+    - Temperature
+    - Humidity
+    - Distance
+    - Motion state
+    - Environment state
+    - PIR state
+    - RFID data
+
+- Browser Dashboard Flow
+  - Open ESP32 local IP in browser
+  - JavaScript polls `/data` every few seconds
+  - Update Live Vitals tab
+    - Heart rate
+    - Heart IR
+    - Patient motion
+    - Fall alert
+    - Temperature
+    - Humidity
+    - Distance in cm
+    - PIR and RFID data
+
+- Dashboard AI/Analytics Tabs
+  - Circadian Rhythm & Sleep tab
+    - Track resting time
+    - Track active time
+    - Draw sleep/activity graph
+    - Show AI suggestions
+      - Sleep more if sleep is below 7 hours
+      - Sleep tight if sleep pattern is healthy
+      - Be more active if active time is below 2 hours
+      - Show recovery/balance suggestions based on trend
+
+  - Mobility Decay Index tab
+    - Track walking vs stationary time
+    - Build daily and weekly mobility trend
+    - Warn if walking declines strongly
+
+  - Environmental Stress Correlation tab
+    - Compare stress events with room temperature state
+    - Show cold / ideal / hot risk levels
+
+  - Agitation Detection tab
+    - Track stationary state
+    - Track IR trend and sustained change
+    - Detect agitation when heart/IR changes stay elevated
+
+  - Heart Insight tab
+    - Track recent BPM trend
+    - Track recent IR trend
+    - Detect
+      - HR spike watch
+      - HR drop watch
+      - Stable recovery
+      - Active response
+      - Weak sensor contact
+    - Show AI tip and alert level
+
+  - AI Patient State tab
+    - Show CNN-based patient state prediction
+    - Show confidence and model status
+
+  - Comfort & Alerts tab
+    - Show Random Forest feedback
+    - Show comfort recommendation
+    - Show risk factors
+    - Show recommended patient-care action
+
+- PC / Laptop Analytics Service Flow
+  - Run local Python analytics service
+  - Connect to ESP32 `/data`
+  - Poll live sensor values at intervals
+  - Save raw sensor output to CSV
+    - `analytics/data/raw_sensor_log.csv`
+  - Build or use sample seed dataset
+  - Train models
+    - CNN for patient-state sequence prediction
+    - Random Forest for comfort / alert feedback
+  - Run inference on latest sensor window
+  - Save processed AI output to CSV
+    - `analytics/data/processed_predictions.csv`
+  - Serve processed results through local API
+    - `/api/latest`
+
+- AI Processing Flow
+  - Raw sensor values collected
+  - Convert values into features
+  - Sequence recent samples for CNN
+  - Predict patient state
+    - Stable rest
+    - Sleep recovery
+    - Active mobility
+    - Environmental stress
+    - Agitated
+    - Fall emergency
+  - Use latest features in Random Forest
+  - Predict comfort feedback
+    - Comfortable
+    - Encourage hydration
+    - Adjust room warmer
+    - Cool room down
+    - Calm patient
+    - Emergency assist
+
+- Alert / Action Flow
+  - If fall detected
+    - Trigger buzzer
+    - Show emergency alert
+    - Mark urgent condition
+  - If HR spike or drop detected
+    - Show warning in Heart Insight tab
+    - Suggest hydration, rest, sensor check, or urgent review
+  - If sleep is low
+    - Suggest more sleep
+  - If activity is too low
+    - Suggest more activity
+  - If environment is too cold or too hot
+    - Suggest room adjustment
+  - If agitation pattern appears
+    - Suggest calming action and observation
+
+- Data Storage Flow
+  - ESP32
+    - Serves live webpage and JSON
+  - Browser
+    - Displays live and processed insights
+  - Laptop / PC
+    - Stores raw CSV
+    - Stores processed CSV
+    - Stores trained model artifacts
+
+- End Result
+  - Patient data is sensed in real time
+  - Data is shown on local dashboard
+  - Data is logged automatically
+  - AI models process patterns and risks
+  - Caregiver gets suggestions, warnings, and comfort feedback

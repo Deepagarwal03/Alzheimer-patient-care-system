@@ -28,6 +28,9 @@ MFRC522 rfid(SS_PIN, RST_PIN);
 #define PIR_PIN 34
 #define BUZZER_PIN 2 
 
+// --- AI Model Instances ---
+// Note: If you get an error here, check if the classes in your .h files 
+// have the exact same name. You might need to rename one in the .h file.
 Eloquent::ML::Port::MotionClassifier motionClf; 
 Eloquent::ML::Port::DHTClassifier dhtClf; 
 
@@ -52,16 +55,24 @@ int mode = 0;
 unsigned long lastSwitchTime = 0;
 const unsigned long displayInterval = 3000; 
 
-const byte RATE_SIZE = 4; 
+const byte RATE_SIZE = 4; // Increase this for more smoothing
 byte rates[RATE_SIZE]; 
 byte rateSpot = 0;
 long lastBeat = 0; 
 float beatsPerMinute;
 int beatAvg;
+int lastValidBeatAvg = 0;
 
 // CSV output to PC via Serial (use a serial logger on the computer)
 const bool CSV_MODE = true;
 bool csvHeaderPrinted = false;
+
+int currentHeartForOutput() {
+  if (beatAvg > 0) {
+    return beatAvg;
+  }
+  return lastValidBeatAvg;
+}
 
 void setup() {
   Serial.begin(115200);
@@ -90,7 +101,8 @@ void setup() {
     json += "\"env\":\"" + envStatus + "\",";
     json += "\"temp\":" + String(currentTemp) + ",";
     json += "\"hum\":" + String(currentHumid) + ",";
-    json += "\"heart\":" + String(beatAvg) + ","; // beatAvg is the stabilized average
+    json += "\"heart\":" + String(currentHeartForOutput()) + ",";
+    json += "\"heartRate\":" + String(currentHeartForOutput()) + ",";
     json += "\"dist\":" + String(currentDist) + ",";
     json += "\"rfid\":\"" + currentUID + "\",";
     json += "\"rfid2\":\"None\",";
@@ -235,6 +247,9 @@ void updateHeartRate() {
       beatAvg = 0;
       for (byte x = 0 ; x < RATE_SIZE ; x++) beatAvg += rates[x];
       beatAvg /= RATE_SIZE;
+      if (beatAvg > 0) {
+        lastValidBeatAvg = beatAvg;
+      }
     }
   }
 
@@ -270,7 +285,7 @@ void emitCsv() {
   Serial.print(",");
   Serial.print(currentHumid);
   Serial.print(",");
-  Serial.print(beatAvg);
+  Serial.print(currentHeartForOutput());
   Serial.print(",");
   Serial.print(currentDist);
   Serial.print(",");

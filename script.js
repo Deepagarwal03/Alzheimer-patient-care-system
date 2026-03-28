@@ -28,13 +28,6 @@ const el = {
   irViz: document.getElementById("irViz")
 };
 
-const objects = [
-  "Water Bottle",
-  "Pill Box",
-  "Remote",
-  "Bed Rail",
-  "Walking Stick"
-];
 
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
@@ -42,6 +35,9 @@ const sleepCanvas = document.getElementById("sleepChart");
 const sleepCtx = sleepCanvas?.getContext("2d");
 const totalSleepHoursEl = document.getElementById("totalSleepHours");
 const sleepFormulaEl = document.getElementById("sleepFormula");
+const sleepRestHoursEl = document.getElementById("sleepRestHours");
+const sleepActiveHoursEl = document.getElementById("sleepActiveHours");
+const sleepAiSummaryEl = document.getElementById("sleepAiSummary");
 const walkingPctEl = document.getElementById("walkingPct");
 const stationaryPctEl = document.getElementById("stationaryPct");
 const walkStationaryRatioEl = document.getElementById("walkStationaryRatio");
@@ -55,12 +51,44 @@ const idealEventsEl = document.getElementById("idealEvents");
 const hotEventsEl = document.getElementById("hotEvents");
 const envSummaryEl = document.getElementById("envSummary");
 const agitationStatusEl = document.getElementById("agitationStatus");
-const baselineBpmEl = document.getElementById("baselineBpm");
-const agitationDeltaEl = document.getElementById("agitationDelta");
+const baselineIrEl = document.getElementById("baselineIr");
+const agitationIrDeltaEl = document.getElementById("agitationIrDelta");
 const agitationSustainEl = document.getElementById("agitationSustain");
 const agitationEventsEl = document.getElementById("agitationEvents");
 const agitationLastEl = document.getElementById("agitationLast");
 const agitationSummaryEl = document.getElementById("agitationSummary");
+const hrInsightStateEl = document.getElementById("hrInsightState");
+const hrSignalQualityEl = document.getElementById("hrSignalQuality");
+const hrAvgBpmEl = document.getElementById("hrAvgBpm");
+const hrAvgIrEl = document.getElementById("hrAvgIr");
+const hrInsightTipEl = document.getElementById("hrInsightTip");
+const hrInsightSummaryEl = document.getElementById("hrInsightSummary");
+const hrBaselineEl = document.getElementById("hrBaseline");
+const hrChangeEl = document.getElementById("hrChange");
+const hrIrChangeEl = document.getElementById("hrIrChange");
+const hrInsightAlertEl = document.getElementById("hrInsightAlert");
+const cnnPatientStateEl = document.getElementById("cnnPatientState");
+const cnnConfidenceEl = document.getElementById("cnnConfidence");
+const cnnWindowSizeEl = document.getElementById("cnnWindowSize");
+const cnnModelStatusEl = document.getElementById("cnnModelStatus");
+const cnnSummaryEl = document.getElementById("cnnSummary");
+const analyticsServiceStatusEl = document.getElementById("analyticsServiceStatus");
+const analyticsRawRowsEl = document.getElementById("analyticsRawRows");
+const analyticsProcessedRowsEl = document.getElementById("analyticsProcessedRows");
+const analyticsLastTrainEl = document.getElementById("analyticsLastTrain");
+const analyticsStatusNoteEl = document.getElementById("analyticsStatusNote");
+const predictionHistoryEl = document.getElementById("predictionHistory");
+const rfFeedbackEl = document.getElementById("rfFeedback");
+const rfConfidenceEl = document.getElementById("rfConfidence");
+const alertLevelEl = document.getElementById("alertLevel");
+const recommendedActionEl = document.getElementById("recommendedAction");
+const riskFactorsEl = document.getElementById("riskFactors");
+const rfSummaryEl = document.getElementById("rfSummary");
+const rawLogPathEl = document.getElementById("rawLogPath");
+const processedLogPathEl = document.getElementById("processedLogPath");
+const lastInferenceEl = document.getElementById("lastInference");
+
+const analyticsApiBase = window.localStorage.getItem("analyticsApiBase") || "http://127.0.0.1:5001/api";
 
 const sleepState = {
   startMs: Date.now(),
@@ -86,11 +114,20 @@ const envStressState = {
 
 const agitationState = {
   baselineBpm: null,
+  baselineIr: null,
   sustainMs: 0,
   lastMs: Date.now(),
   active: false,
   events: 0,
   lastEventMs: null
+};
+
+const heartInsightState = {
+  samples: []
+};
+
+const analyticsState = {
+  available: false
 };
 
 function randomBetween(min, max, digits = 0) {
@@ -280,29 +317,182 @@ function formatTimeAgo(ms) {
   return new Date(ms).toLocaleTimeString();
 }
 
-function updateAgitationTracking(heartBpm, isStationary, nowMs) {
+function formatDateTime(value) {
+  if (!value) {
+    return "--";
+  }
+  const dt = new Date(value);
+  return Number.isNaN(dt.getTime()) ? String(value) : dt.toLocaleString();
+}
+
+function setStatusPill(node, text, tone) {
+  if (!node) {
+    return;
+  }
+  node.textContent = text;
+  node.classList.remove("good", "warn", "danger");
+  if (tone) {
+    node.classList.add(tone);
+  }
+}
+
+function average(values) {
+  if (!values.length) {
+    return 0;
+  }
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function updateSleepSuggestions(restHours, activeHours, mode) {
+  if (!sleepAiSummaryEl) {
+    return;
+  }
+
+  sleepRestHoursEl.textContent = `${restHours.toFixed(2)} hrs`;
+  sleepActiveHoursEl.textContent = `${activeHours.toFixed(2)} hrs`;
+  sleepAiSummaryEl.classList.remove("alert");
+
+  let summary = "Balanced rest and activity trend. Keep the current routine and sleep tight.";
+
+  if (restHours < 7 && activeHours < 2) {
+    summary = "Sleep more and add short supervised activity blocks. Rest is below 7 hours and movement is below 2 hours.";
+    sleepAiSummaryEl.classList.add("alert");
+  } else if (restHours < 7) {
+    summary = "Sleep more. The patient is still below the 7-hour sleep goal, so keep the room calm and encourage an earlier rest period.";
+    sleepAiSummaryEl.classList.add("alert");
+  } else if (restHours >= 7 && restHours <= 9 && activeHours >= 2 && activeHours <= 5) {
+    summary = "Sleep tight. Rest and daily activity are in a healthy range, so the current rhythm looks well balanced.";
+  } else if (restHours > 9.5 && activeHours < 2) {
+    summary = "Sleep hours are increasing steadily while activity is low. Sleep tight, but also encourage gentle daytime movement to avoid over-resting.";
+  } else if (activeHours < 2) {
+    summary = "Be more active. Add short walks, stretching, or chair exercises so daytime activity reaches at least 2 hours.";
+    sleepAiSummaryEl.classList.add("alert");
+  } else if (activeHours > 6 && restHours < 6.5) {
+    summary = "Activity is high while sleep is low. Encourage recovery, hydration, and an earlier bedtime tonight.";
+    sleepAiSummaryEl.classList.add("alert");
+  } else if (mode === "Resting" && restHours >= 7) {
+    summary = "Sleep tight. The patient is already above the minimum sleep target and is currently in a resting phase.";
+  }
+
+  sleepAiSummaryEl.textContent = summary;
+}
+
+function updateHeartInsight(heartBpm, heartIr, patientMotion, nowMs) {
+  if (!hrInsightStateEl) {
+    return;
+  }
+
+  heartInsightState.samples.push({ heartBpm, heartIr, patientMotion, nowMs });
+  if (heartInsightState.samples.length > 90) {
+    heartInsightState.samples.shift();
+  }
+
+  const samples = heartInsightState.samples;
+  const recent = samples.slice(-12);
+  const validHeart = recent.filter((sample) => sample.heartBpm > 0).map((sample) => sample.heartBpm);
+  const validIr = recent.filter((sample) => sample.heartIr > 0).map((sample) => sample.heartIr);
+  const baselineHeartSource = samples.slice(Math.max(0, samples.length - 30), Math.max(0, samples.length - 5)).filter((sample) => sample.heartBpm > 0).map((sample) => sample.heartBpm);
+  const baselineIrSource = samples.slice(Math.max(0, samples.length - 30), Math.max(0, samples.length - 5)).filter((sample) => sample.heartIr > 0).map((sample) => sample.heartIr);
+  const avgHeart = average(validHeart);
+  const avgIr = average(validIr);
+  const baselineHeart = average(baselineHeartSource.length ? baselineHeartSource : validHeart);
+  const baselineIr = average(baselineIrSource.length ? baselineIrSource : validIr);
+  const heartChange = heartBpm > 0 && baselineHeart > 0 ? heartBpm - baselineHeart : 0;
+  const irChange = heartIr > 0 && baselineIr > 0 ? heartIr - baselineIr : 0;
+  const spikeVotes = recent.filter((sample) => sample.heartBpm > 0 && baselineHeart > 0 && sample.heartBpm >= baselineHeart + 12).length;
+  const dropVotes = recent.filter((sample) => sample.heartBpm > 0 && baselineHeart > 0 && sample.heartBpm <= Math.max(40, baselineHeart - 12)).length;
+
+  let signalQuality = "No Contact";
+  if (heartIr >= 85000) {
+    signalQuality = "Strong";
+  } else if (heartIr >= 55000) {
+    signalQuality = "Good";
+  } else if (heartIr >= 30000) {
+    signalQuality = "Weak";
+  }
+
+  let trendState = "Adaptive Monitoring";
+  let tip = "Keep watching the trend while the model gathers more heart and IR context.";
+  let summary = "The heart insight engine is using recent BPM and IR windows to watch for spike, drop, recovery, and signal-quality changes.";
+  let alertTone = "good";
+  let alertText = "Stable";
+
+  if (heartIr < 20000) {
+    trendState = "Signal Check";
+    tip = "Heart sensor IR is very low. Reposition the finger and reduce movement for a cleaner reading.";
+    summary = "The IR signal is weak, so any BPM spike or drop may be unreliable until sensor contact improves.";
+    alertTone = "warn";
+    alertText = "Check Sensor";
+  } else if ((heartBpm > 0 && heartBpm >= 118) || spikeVotes >= 3 || heartChange >= 18) {
+    trendState = "HR Spike Watch";
+    tip = "Heart rate is running above the recent baseline. Slow activity, hydrate, and recheck within 1 to 2 minutes.";
+    summary = `Recent BPM is elevated against baseline by ${heartChange.toFixed(0)} BPM, so the model is watching for a sustained spike.`;
+    alertTone = heartBpm >= 130 ? "danger" : "warn";
+    alertText = heartBpm >= 130 ? "Urgent" : "Observe";
+  } else if ((heartBpm > 0 && heartBpm <= 50 && baselineHeart >= 60) || dropVotes >= 3) {
+    trendState = "HR Drop Watch";
+    tip = "Heart rate is below the recent baseline. Check posture, comfort, and sensor placement, then repeat the reading.";
+    summary = `The recent trend is below baseline by ${Math.abs(heartChange).toFixed(0)} BPM, so the model is watching for a persistent drop.`;
+    alertTone = heartBpm > 0 && heartBpm < 45 ? "danger" : "warn";
+    alertText = heartBpm > 0 && heartBpm < 45 ? "Urgent" : "Observe";
+  } else if (patientMotion === "Resting" && heartBpm > 0 && heartBpm >= 60 && heartBpm <= 95 && heartIr >= 50000) {
+    trendState = "Stable Recovery";
+    tip = "Heart rate and IR look steady during rest. Maintain comfort and continue monitoring.";
+    summary = "The model sees a stable recovery pattern with steady BPM and good IR signal quality during rest.";
+  } else if (patientMotion === "Walking" && heartBpm > 0) {
+    trendState = "Active Response";
+    tip = "The heart signal reflects activity. Watch for recovery after movement and offer hydration if needed.";
+    summary = "The recent BPM and IR pattern matches an active-movement response rather than a concerning spike.";
+  }
+
+  hrInsightStateEl.textContent = trendState;
+  hrSignalQualityEl.textContent = signalQuality;
+  hrAvgBpmEl.textContent = validHeart.length ? `${avgHeart.toFixed(0)} BPM` : "--";
+  hrAvgIrEl.textContent = validIr.length ? `${avgIr.toFixed(0)}` : "--";
+  hrInsightTipEl.textContent = tip;
+  hrInsightSummaryEl.textContent = summary;
+  hrBaselineEl.textContent = baselineHeart > 0 ? `${baselineHeart.toFixed(0)} BPM` : "--";
+  hrChangeEl.textContent = heartBpm > 0 && baselineHeart > 0 ? `${heartChange >= 0 ? "+" : ""}${heartChange.toFixed(0)} BPM` : "--";
+  hrIrChangeEl.textContent = heartIr > 0 && baselineIr > 0 ? `${irChange >= 0 ? "+" : ""}${irChange.toFixed(0)}` : "--";
+  setStatusPill(hrInsightAlertEl, alertText, alertTone);
+}
+
+function updateAgitationTracking(heartBpm, heartIr, isStationary, nowMs) {
   const elapsedMs = Math.max(0, nowMs - agitationState.lastMs);
   agitationState.lastMs = nowMs;
 
   if (!isStationary) {
     agitationState.sustainMs = 0;
     agitationState.active = false;
-    renderAgitation(heartBpm, 0, "Moving");
+    renderAgitation(heartIr, 0, "Moving");
     return;
   }
 
   const alpha = 0.06;
-  if (agitationState.baselineBpm == null) {
-    agitationState.baselineBpm = heartBpm;
-  } else {
-    agitationState.baselineBpm = agitationState.baselineBpm + alpha * (heartBpm - agitationState.baselineBpm);
+  if (heartBpm > 0) {
+    if (agitationState.baselineBpm == null) {
+      agitationState.baselineBpm = heartBpm;
+    } else {
+      agitationState.baselineBpm = agitationState.baselineBpm + alpha * (heartBpm - agitationState.baselineBpm);
+    }
+  }
+  if (heartIr > 0) {
+    if (agitationState.baselineIr == null) {
+      agitationState.baselineIr = heartIr;
+    } else {
+      agitationState.baselineIr = agitationState.baselineIr + alpha * (heartIr - agitationState.baselineIr);
+    }
   }
 
-  const delta = heartBpm - agitationState.baselineBpm;
+  const delta = agitationState.baselineBpm == null ? 0 : heartBpm - agitationState.baselineBpm;
+  const irDelta = agitationState.baselineIr == null ? 0 : heartIr - agitationState.baselineIr;
   const threshold = 12;
   const sustainTargetMs = 20000;
 
-  if (delta >= threshold) {
+  const bpmTrigger = heartBpm > 0 && delta >= threshold;
+  const irTrigger = heartIr > 0 && agitationState.baselineIr != null && Math.abs(irDelta) >= 12000;
+
+  if (bpmTrigger || irTrigger) {
     agitationState.sustainMs += elapsedMs;
   } else {
     agitationState.sustainMs = Math.max(0, agitationState.sustainMs - elapsedMs * 1.4);
@@ -318,29 +508,138 @@ function updateAgitationTracking(heartBpm, isStationary, nowMs) {
     agitationState.active = false;
   }
 
-  renderAgitation(heartBpm, delta, agitationState.active ? "Agitated" : "Stable");
+  renderAgitation(heartIr, irDelta, agitationState.active ? "Agitated" : "Stable");
 }
 
-function renderAgitation(heartBpm, delta, status) {
+function renderAgitation(heartIr, irDelta, status) {
   if (!agitationStatusEl) {
     return;
   }
   agitationStatusEl.textContent = status;
-  baselineBpmEl.textContent = agitationState.baselineBpm ? `${agitationState.baselineBpm.toFixed(0)} BPM` : "--";
-  agitationDeltaEl.textContent = `${delta.toFixed(0)} BPM`;
+  baselineIrEl.textContent = agitationState.baselineIr ? `${agitationState.baselineIr.toFixed(0)}` : "--";
+  agitationIrDeltaEl.textContent = `${irDelta >= 0 ? "+" : ""}${irDelta.toFixed(0)}`;
   agitationSustainEl.textContent = `${Math.round(agitationState.sustainMs / 1000)}s`;
   agitationEventsEl.textContent = String(agitationState.events);
   agitationLastEl.textContent = formatTimeAgo(agitationState.lastEventMs);
 
   agitationSummaryEl.classList.toggle("alert", agitationState.active);
   if (status === "Moving") {
-    agitationSummaryEl.textContent = "Patient is moving. Agitation tracking paused until stationary.";
+    agitationSummaryEl.textContent = "Patient is moving. Agitation tracking pauses until the patient is stationary again.";
   } else if (agitationState.active) {
-    agitationSummaryEl.textContent = "Agitation detected: sustained heart rate increase while stationary.";
+    agitationSummaryEl.textContent = "Agitation detected: sustained heart and IR change while stationary.";
   } else {
-    agitationSummaryEl.textContent = "Tracking sustained heart rate increases while stationary. No agitation detected.";
+    agitationSummaryEl.textContent = "Tracking sustained heart and IR changes while stationary. No agitation detected.";
   }
 }
+
+function renderPredictionHistory(items) {
+  if (!predictionHistoryEl) {
+    return;
+  }
+  if (!items || !items.length) {
+    predictionHistoryEl.innerHTML = `
+      <div class="history-row empty">
+        <span>No processed history yet.</span>
+        <span>--</span>
+        <span>--</span>
+        <span>--</span>
+      </div>
+    `;
+    return;
+  }
+
+  predictionHistoryEl.innerHTML = items.map((item) => `
+    <div class="history-row">
+      <span>${formatDateTime(item.created_at_iso)}</span>
+      <span>${item.patient_state ?? "--"}</span>
+      <span>${item.alert_level ?? "--"}</span>
+      <span>${item.comfort_feedback ?? "--"}</span>
+    </div>
+  `).join("");
+}
+
+function renderAnalyticsUnavailable(message) {
+  analyticsState.available = false;
+  cnnPatientStateEl.textContent = "Offline";
+  cnnConfidenceEl.textContent = "--";
+  cnnWindowSizeEl.textContent = "--";
+  setStatusPill(cnnModelStatusEl, "Offline", "warn");
+  cnnSummaryEl.textContent = message;
+  setStatusPill(analyticsServiceStatusEl, "Disconnected", "warn");
+  analyticsRawRowsEl.textContent = "0";
+  analyticsProcessedRowsEl.textContent = "0";
+  analyticsLastTrainEl.textContent = "--";
+  analyticsStatusNoteEl.textContent = message;
+  rfFeedbackEl.textContent = "Offline";
+  rfConfidenceEl.textContent = "--";
+  setStatusPill(alertLevelEl, "Stable", "good");
+  recommendedActionEl.textContent = "Start the local analytics service to receive model feedback and saved CSV output.";
+  riskFactorsEl.textContent = "No processed risks yet.";
+  rfSummaryEl.textContent = "The Random Forest output will appear here once the local analytics service is running.";
+  lastInferenceEl.textContent = "--";
+  hrInsightStateEl.textContent = "Monitoring";
+  hrSignalQualityEl.textContent = "--";
+  hrAvgBpmEl.textContent = "--";
+  hrAvgIrEl.textContent = "--";
+  hrInsightTipEl.textContent = "Collecting enough heart and IR samples for insight.";
+  hrInsightSummaryEl.textContent = "This tab watches recent BPM and HR sensor IR trends for spike, drop, recovery, and signal-quality guidance.";
+  hrBaselineEl.textContent = "--";
+  hrChangeEl.textContent = "--";
+  hrIrChangeEl.textContent = "--";
+  setStatusPill(hrInsightAlertEl, "Stable", "good");
+  renderPredictionHistory([]);
+}
+
+function renderAnalyticsSnapshot(payload) {
+  const service = payload?.service ?? {};
+  const processed = payload?.processed ?? {};
+  const metrics = service.metrics ?? {};
+  const modelsReady = Boolean(service.models_ready);
+  const alertLevel = processed.alert_level ?? "Stable";
+  const riskFactors = Array.isArray(processed.risk_factors) ? processed.risk_factors : [];
+  const noteParts = [
+    service.message,
+    metrics.cnn_accuracy != null ? `CNN ${(metrics.cnn_accuracy * 100).toFixed(1)}%` : null,
+    metrics.rf_accuracy != null ? `RF ${(metrics.rf_accuracy * 100).toFixed(1)}%` : null
+  ].filter(Boolean);
+
+  analyticsState.available = true;
+  cnnPatientStateEl.textContent = processed.patient_state ?? "Collecting data";
+  cnnConfidenceEl.textContent = processed.patient_state_confidence != null ? `${(processed.patient_state_confidence * 100).toFixed(1)}%` : "--";
+  cnnWindowSizeEl.textContent = processed.cnn_window_size ? `${processed.cnn_window_size} samples` : `${service.window_size ?? "--"} samples`;
+  setStatusPill(cnnModelStatusEl, modelsReady ? "Ready" : "Training", modelsReady ? "good" : "warn");
+  cnnSummaryEl.textContent = processed.state_summary ?? "The CNN summary will appear here after the first processed prediction.";
+  setStatusPill(analyticsServiceStatusEl, modelsReady ? "Connected" : "Starting", modelsReady ? "good" : "warn");
+  analyticsRawRowsEl.textContent = String(service.raw_rows ?? 0);
+  analyticsProcessedRowsEl.textContent = String(service.processed_rows ?? 0);
+  analyticsLastTrainEl.textContent = formatDateTime(service.last_train_iso);
+  analyticsStatusNoteEl.textContent = noteParts.join(" | ") || "Analytics service is connected.";
+  rfFeedbackEl.textContent = processed.comfort_feedback ?? "Collecting data";
+  rfConfidenceEl.textContent = processed.feedback_confidence != null ? `${(processed.feedback_confidence * 100).toFixed(1)}%` : "--";
+  setStatusPill(alertLevelEl, alertLevel, alertLevel === "Urgent" ? "danger" : (alertLevel === "Observe" ? "warn" : "good"));
+  recommendedActionEl.textContent = processed.recommended_action ?? "Waiting for enough samples to produce care feedback.";
+  riskFactorsEl.textContent = riskFactors.length ? riskFactors.join(", ") : "No active high-risk trigger.";
+  rfSummaryEl.textContent = processed.feedback_summary ?? "The Random Forest feedback summary will appear here after the first inference.";
+  rawLogPathEl.textContent = service.raw_log_path ?? "analytics/data/raw_sensor_log.csv";
+  processedLogPathEl.textContent = service.processed_log_path ?? "analytics/data/processed_predictions.csv";
+  lastInferenceEl.textContent = formatDateTime(processed.created_at_iso ?? service.last_poll_iso);
+  renderPredictionHistory(payload?.history ?? []);
+}
+
+async function updateAnalyticsSnapshot() {
+  try {
+    const response = await fetch(`${analyticsApiBase}/latest`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const payload = await response.json();
+    renderAnalyticsSnapshot(payload);
+  } catch (error) {
+    renderAnalyticsUnavailable("Analytics service is not reachable at http://127.0.0.1:5001/api. Start the local logger/model service to save raw and processed CSV files.");
+    console.warn("Analytics update failed:", error);
+  }
+}
+
 
 function renderEnvStress() {
   const weekKeys = getPastDayKeys(7);
@@ -492,9 +791,11 @@ function updateSleepTracking(mode, nowMs) {
     sleepState.history.shift();
   }
 
-  const totalSleepHours = (sleepState.restingMs - sleepState.activeMs) / 3600000;
-  totalSleepHoursEl.textContent = `${totalSleepHours.toFixed(2)} hrs`;
-  sleepFormulaEl.textContent = `${(sleepState.restingMs / 3600000).toFixed(2)}h resting - ${(sleepState.activeMs / 3600000).toFixed(2)}h active`;
+  const restHours = sleepState.restingMs / 3600000;
+  const activeHours = sleepState.activeMs / 3600000;
+  totalSleepHoursEl.textContent = `${restHours.toFixed(2)} hrs`;
+  sleepFormulaEl.textContent = `${restHours.toFixed(2)}h resting | ${activeHours.toFixed(2)}h active`;
+  updateSleepSuggestions(restHours, activeHours, mode);
   drawSleepChart();
 }
 
@@ -592,7 +893,7 @@ function applyVisuals(metrics) {
   setMeter(el.bodyTempViz, ((metrics.bodyTemp - 35) / 5) * 100, 2.3 - ((metrics.bodyTemp - 35) / 5) * 1.4);
   setMeter(el.envTempViz, ((metrics.envTemp - 15) / 20) * 100, 2.2 - ((metrics.envTemp - 15) / 20) * 1.2);
   setMeter(el.humidityViz, metrics.humidity, 2.6 - (metrics.humidity / 100) * 1.8);
-  setMeter(el.objectViz, (1 - metrics.distance / 3) * 100, 2.4 - (1 - metrics.distance / 3) * 1.4);
+  setMeter(el.objectViz, (1 - metrics.distanceCm / 300) * 100, 2.4 - (1 - metrics.distanceCm / 300) * 1.4);
   setSpeed(el.irViz, 2.4 - (metrics.heartIr / 100000) * 1.2);
 
   setSpeed(el.rfidViz, metrics.rfidChanged ? 0.85 : 1.8);
@@ -614,11 +915,11 @@ async function updateDashboard() {
     const response = await fetch('/data');
     const data = await response.json();
 
-    const heart = toNumber(data.heart ?? data.heartRate, randomBetween(68, 98));
+    const heart = toNumber(data.heartRate ?? data.heart ?? data.bpm, randomBetween(68, 98));
     const bodyTemp = toNumber(data.bodyTemp ?? data.body_temp ?? data.temp, randomBetween(36.2, 37.6, 1));
     const envTemp = toNumber(data.envTemp ?? data.environmentTemp ?? data.temp, randomBetween(22, 29, 1));
     const humidity = toNumber(data.hum ?? data.humidity, randomBetween(40, 65));
-    const distance = toNumber(data.dist ?? data.distance, randomBetween(0.4, 2.3, 1));
+    const distanceCm = toNumber(data.dist ?? data.distance, randomBetween(40, 230));
     const patientMotion = String(data.motion ?? "Resting").includes("Walk") ? "Walking" : "Resting";
     const nearMotion = String(data.nearMotion ?? data.near_motion ?? data.near ?? (patientMotion === "Walking" ? "Moving" : "Stationary"));
     const primaryRfid = String(data.rfid ?? data.rfid1 ?? "A7-91-2C-FF");
@@ -637,8 +938,7 @@ async function updateDashboard() {
     el.rfid2.textContent = secondaryRfid;
     el.heartIr.textContent = String(Math.round(heartIr));
 
-    const nearestName = data.nearestObject ?? data.object ?? objects[Math.floor(Math.random() * objects.length)];
-    el.nearestObject.textContent = `${nearestName} (${distance.toFixed(1)} m)`;
+    el.nearestObject.textContent = `${Math.round(distanceCm)} cm`;
     el.nearMotion.textContent = nearMotion.includes("Moving") ? "Moving" : "Stationary";
 
     // Logic for the Fall Alert Card
@@ -657,7 +957,7 @@ async function updateDashboard() {
       bodyTemp,
       envTemp,
       humidity,
-      distance,
+      distanceCm,
       heartIr,
       nearMotion: el.nearMotion.textContent,
       isFall: data.motion === "!!! FALL !!!",
@@ -669,7 +969,9 @@ async function updateDashboard() {
     updateMobilityTracking(patientMotion === "Walking" ? "Walking" : "Stationary", Date.now());
     const highHeart = heart >= 100;
     updateEnvStressTracking(envTemp, data.motion === "!!! FALL !!!" || highHeart, Date.now());
-    updateAgitationTracking(heart, patientMotion !== "Walking", Date.now());
+    const nowMs = Date.now();
+    updateAgitationTracking(heart, heartIr, patientMotion !== "Walking", nowMs);
+    updateHeartInsight(heart, heartIr, patientMotion, nowMs);
 
     const now = new Date();
     el.lastUpdated.textContent = `Updated: ${now.toLocaleTimeString()}`;
@@ -680,6 +982,7 @@ async function updateDashboard() {
 
 // Keep the interval but reduce it to 2 seconds for real-time monitoring
 setInterval(updateDashboard, 2000);
+setInterval(updateAnalyticsSnapshot, 4000);
 
 loadMobilityState();
 renderMobility();
@@ -687,4 +990,6 @@ loadEnvStressState();
 renderEnvStress();
 setupTabs();
 drawSleepChart();
+renderAnalyticsUnavailable("Analytics service is not reachable at http://127.0.0.1:5001/api. Start the local logger/model service to enable automatic CSV logging and model predictions.");
 updateDashboard();
+updateAnalyticsSnapshot();

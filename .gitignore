@@ -1,0 +1,5 @@
+.venv/
+analytics/data/
+analytics/models/
+__pycache__/
+*.pyc
